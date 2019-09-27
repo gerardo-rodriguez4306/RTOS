@@ -51,7 +51,14 @@ int atoi(const char* str)
     uint8_t i = 0;
     int result = 0;
     uint8_t length_of_string = strlen(str);
-    uint32_t power_of_ten = 1;
+    int power_of_ten;
+    if (str[0] == '-')
+    {
+        power_of_ten = -1;
+        i++;
+    }
+    else
+        power_of_ten = 1;
     while (i < length_of_string - 1)
     {
         power_of_ten *= 10;
