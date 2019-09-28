@@ -9,35 +9,22 @@
 #include "tm4c123gh6pm.h"
 
 #define MAX_CHARS 80
+#define RED_LED (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
 
+/* Please make these variables local to the shell function */
+
+#define RED_LED_MASK 2
 char strInput[MAX_CHARS];
 char *temp_command;
 char *temp_arg[10];
 uint8_t argCount;
 
+
+/* Please make these variables local to the shell function */
+
 /* adding a putsUart0 function declaration so string functions know about it */
 void putsUart0(const char* str);
 /* String handling functions */
-
-int strcmp(const char* str1, const char* str2)
-{
-    int result = 0;
-    uint8_t i = 0;
-    while (str1[i] != '\0' && str2[i] != '\0')
-    {
-        if ( str1[i] < str2[i] )
-        {
-            result = -1; break;
-        }
-        else if ( str1[i] > str2[i] )
-        {
-            result = 1;  break;
-        }
-        else
-            i++;
-    }
-    return result;
-}
 
 uint8_t strlen(const char* str)
 {
@@ -45,7 +32,21 @@ uint8_t strlen(const char* str)
     while (str[result++] != '\0');
     return result;
 }
-
+int strcmp(const char* str1, const char* str2)
+{
+    uint8_t i = 0;
+    if (strlen(str1) != strlen(str2)) return -1;
+    while (str1[i] != '\0' && str2[i] != '\0')
+    {
+        if ( str1[i] < str2[i] )
+            return -1;
+        else if ( str1[i] > str2[i] )
+            return 1;
+        else
+            i++;
+    }
+    return 0;
+}
 int atoi(const char* str)
 {
     uint8_t i = 0;
@@ -66,11 +67,11 @@ int atoi(const char* str)
     }
     while (i < length_of_string)
     {
-        if (str[i] > '9' || str[i] < '0')
-        {
-            putsUart0(str); putsUart0(" contains a character. Could not convert to integer.\n");
-            break;
-        }
+//        if (str[i] > '9' || str[i] < '0')
+//        {
+//            putsUart0(str); putsUart0(" contains a character. Could not convert to integer.\n");
+//            break;
+//        }
         result += (str[i] - 48) * 10;
 
         power_of_ten /= 10;
@@ -86,7 +87,7 @@ uint8_t is_alphanumeric(char c)
     uint8_t result[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                            0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
                             0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
                             1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
                             0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
@@ -167,8 +168,12 @@ void initHw()
     SYSCTL_GPIOHBCTL_R = 0;
 
     // Enable GPIO port B and E peripherals
-    SYSCTL_RCGC2_R = SYSCTL_RCGC2_GPIOA;
+    SYSCTL_RCGC2_R = SYSCTL_RCGC2_GPIOA | SYSCTL_RCGC2_GPIOF;
 
+    // Configuring GPIO Port F
+    GPIO_PORTF_DIR_R |= RED_LED_MASK;
+    GPIO_PORTF_DR2R_R |= RED_LED_MASK;
+    GPIO_PORTF_DEN_R |= RED_LED_MASK;
     // Configure UART0 pins
     SYSCTL_RCGCUART_R |= SYSCTL_RCGCUART_R0;         // turn-on UART0, leave other uarts in same status
     GPIO_PORTA_DEN_R |= 3;                           // enable digital on UART0 pins: default, added for clarity
@@ -214,7 +219,7 @@ void getsUart0(char* str, uint8_t maxChars)
             str[count] = '\0';
             break;
         }
-        if (c == 8)
+        if (c == 8 || c == 127)
         {
             if (count < 1) continue;
             count--; continue;
@@ -237,103 +242,144 @@ void getsUart0(char* str, uint8_t maxChars)
         count++;
     }
 }
-
-int main(void)
+void ps()
 {
-    // Initialize hardware
-    initHw();
-    /* Continuously get and print user input
-     * */
-    char *menu = "Menu: \n\n"
-                "calibrate:\t Calibrate according to white balance\n"
-                "color N:\t store current color\n";
-
-    char *menu1 = "erase N:\t erase reference color N\n"
-                  "periodic T:\t send RGB triplet every 0.1 x T seconds\n"
-                  "delta D:\t send RGB triplet when RMS average vs long-term average is greater than D\n";
-    char *menu2 = "match E:\t send RGB triplet when error between sample and color reference is less than E\n"
-                  "trigger:\t send RGB triplet immediately\n"
-                  "button: \t send RGB triplet when PB is pressed\n";
-    char *menu3 = "led off:\t disable green status LED\n"
-                  "led on: \t enable green status LED\n"
-                  "led sample:\t blink green status LED when sample is taken\n";
-    char *menu4 = "test:  \t\t ramp up RGB separately, respectively, and output 12-bit light intensity\n"
-                  "ramp:  \t\t ramps up RGB separately, respectively\n"
-                  "rgb A B C:\t sends an RGB value; A B and C vary from 0 to 255\n\n";
-    putsUart0("\nHello! Welcome to ColorimeterUTA! Please enter any input or 'menu' if you need help.\n");
-    while (1)
+    putsUart0("PS called");
+}
+void ipcs()
+{
+    putsUart0("IPCS called");
+}
+void kill(int pid)
+{
+    putsUart0("# killed");
+}
+void pi(bool on)
+{
+    if (on)
+        putsUart0("PI on");
+    else
+        putsUart0("PI off");
+}
+void preempt(bool on)
+{
+    if (on)
+        putsUart0("preempt on");
+    else
+        putsUart0("preempt off");
+}
+void sched(bool prio_on)
+{
+    if (prio_on)
+        putsUart0("sched prio");
+    else
+        putsUart0("sched rr");
+}
+void pidof(char name[])
+{
+    putsUart0(name);
+    putsUart0(" launched");
+}
+void shell(void)
+{
+    bool _on_;
+    char *menu =  "help menu: \n"
+                  "help:\t\t displays help menu\n"
+                  "reboot:\t\t reboots the microcontroller.\n"
+                  "ipcs:\t\t displays the inter-process (thread) communication state.\n";
+    char *menu1 = "ps:\t\t displays the process (thread) information.\n"
+                  "kill PID:\t kills the process (thread) with the matching PID.\n"
+                  "pi ON|OFF:\t turns priority inheritance on or off. \n";
+    char *menu2 = "preempt ON|OFF:\t turns preemption on or off.\n"
+                  "sched PRIO | RR: selected priority or round-robin scheduling.\n"
+                  "pidof proc_name: displays the PID of the process (thread).\n"
+                  "proc_name &: \t runs the selected program in the background.\n";
+    while (true)
     {
+        putsUart0("\nrtos-shell-0.1~ ");
         getsUart0(strInput, MAX_CHARS);
         tokenize_string(strInput);
 
         /*tokenizing string, setting argCount, getting arguments, and determining command*/
-        putsUart0("command is: ");
-        putsUart0(temp_command);
-        putsUart0("\n");
-        if (isCommand("menu", argCount))
+        if (temp_arg[1][0] == '&')
+            RED_LED ^= 1;
+        else if (isCommand("help", argCount))
         {
-            putsUart0(menu); putsUart0(menu1); putsUart0(menu2); putsUart0(menu3); putsUart0(menu4);
+            putsUart0(menu); putsUart0(menu1); putsUart0(menu2);
         }
-        else if (isCommand("rgb", argCount))
+        else if (isCommand("reboot", argCount))
         {
-            putsUart0("Setting PWM signal\n");
-
+            putsUart0("System rebooting...\n");
+            break;
         }
-        else if (isCommand("calibrate", argCount))
-            putsUart0("Calibrating...\n");
-        else if (isCommand("color", argCount))
-            putsUart0("Storing color...\n");
-        else if (isCommand("erase", argCount))
-            putsUart0("Erasing reference color...\n");
-        else if (isCommand("periodic", argCount))
+        else if (isCommand("ps", argCount))
+            ps();
+        else if (isCommand("ipcs", argCount))
+            ipcs();
+        else if (isCommand("kill", argCount))
+            kill(atoi(temp_arg[1]));
+        else if (isCommand("pi", argCount))
         {
-            putsUart0("Sending RGB triplets in 8-bit calibrated format every ");
-            putsUart0(temp_arg[0]); putsUart0(" * 0.1 seconds...\n");
-        }
-        else if (isCommand("delta", argCount))
-        {
-            putsUart0("sending RGB triplet when RMS > IIR based on ");
-            putsUart0(temp_arg[0]); putsUart0(" or distance from value...\n");
-        }
-        else if (isCommand("match", argCount))
-        {
-            putsUart0("Configuring hardware to Euclidean distance: ");
-            putsUart0(temp_arg[0]); putsUart0("...\n");
-        }
-        else if (isCommand("trigger", argCount) /* && system is calibrated*/)
-        {
-            putsUart0("Sending rgb triplet...\n");
-        }
-        else if (isCommand("button", argCount))
-        {
-            putsUart0("Push button when you desire to send rgb triplet...\n");
-        }
-        else if (isCommand("led", argCount))
-        {
-            if (strcmp(temp_arg[1], "off") == 0)
+            if (strcmp("on", temp_arg[1]) == 0)
             {
-                putsUart0("Turning green LED status light off...\n");
+                _on_ = true;
+                pi(_on_);
             }
-            else if(strcmp(temp_arg[1], "on") == 0)
+            else if (strcmp("off", temp_arg[1]) == 0)
             {
-                putsUart0("Turning green LED status light on...\n");
-            }
-            else if (strcmp(temp_arg[1], "sample") == 0)
-            {
-                putsUart0("Toggling green LED status light every time sample is taken...\n");
+                _on_ = false;
+                pi(_on_);
             }
             else
-                putsUart0("That is an incorrect LED command");
+                putsUart0("Argument supplied was not \"on\" or \"off\". Try again.");
         }
-        else if (isCommand("test", argCount))
+        else if (isCommand("preempt", argCount))
         {
-            putsUart0("Testing...\n");
+            if (strcmp("on", temp_arg[1]) == 0)
+            {
+                _on_ = true;
+                preempt(_on_);
+            }
+            else if (strcmp("off", temp_arg[1]) == 0)
+            {
+                _on_ = false;
+                preempt(_on_);
+            }
+            else
+                putsUart0("Argument supplied was not \"on\" or \"off\". Try again.");
         }
+        else if (isCommand("sched", argCount))
+        {
+            if (strcmp("prio", temp_arg[1]) == 0)
+            {
+                _on_ = true;
+                sched(_on_);
+            }
+            else if (strcmp("rr", temp_arg[1]) == 0)
+            {
+                _on_ = false;
+                sched(_on_);
+            }
+            else
+                putsUart0("Argument supplied was not \"prio\" or \"rr\". Try again.");
+        }
+        else if (isCommand("pidof", argCount))
+            pidof(temp_arg[1]);
         else
         {
             putsUart0(temp_command);
-            putsUart0(" is not specified. You might be missing arguments.\n");
+            putsUart0(" is not specified. You might be missing arguments.");
         }
         argCount = 0;
+        // reboot_debug++;
     }
+    return;
+}
+int main(void)
+{
+    // Initialize hardware
+    initHw();
+    // begin shell
+    shell();
+    return 0;
 }
