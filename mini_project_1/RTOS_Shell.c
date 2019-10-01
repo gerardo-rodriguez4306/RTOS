@@ -14,10 +14,10 @@
 /* Please make these variables local to the shell function */
 
 #define RED_LED_MASK 2
-char strInput[MAX_CHARS];
-char *temp_command;
-char *temp_arg[10];
-uint8_t argCount;
+//char strInput[MAX_CHARS];
+//char *temp_command;
+//char *temp_arg[10];
+//uint8_t argCount;
 
 
 /* Please make these variables local to the shell function */
@@ -113,7 +113,7 @@ uint8_t is_alphanumeric(char c)
                             };
     return result[c];
 }
-void tokenize_string(char* str)
+void tokenize_string(char* str, char *temp_command, char *temp_arg, uint8_t argCount;)
 {
     uint8_t i;
     uint8_t j = 0;
@@ -134,7 +134,7 @@ void tokenize_string(char* str)
     temp_command = temp_arg[0];
     argCount = j - 1;
 }
-bool isCommand(char* cmd, uint8_t min)
+bool isCommand(char* cmd, uint8_t min, char* temp_command)
 {
   /*commands: calibrate, color, erase, periodic, delta, match, trigger, button
               led, test, ramp, rgb, light*/
@@ -150,11 +150,11 @@ bool isCommand(char* cmd, uint8_t min)
   else
     return false;
 }
-uint32_t getValue(uint16_t argNum)
+uint32_t getValue(uint16_t argNum, char *temp_arg)
 {
     return atoi(temp_arg[argNum + 1]);
 }
-char* getString(uint8_t argNum)
+char* getString(uint8_t argNum, char *temp_arg)
 {
     return temp_arg[argNum + 1];
 }
@@ -282,6 +282,10 @@ void pidof(char name[])
 }
 void shell(void)
 {
+	char strInput[MAX_CHARS];
+	char *temp_command;
+	char *temp_arg[10];
+	uint8_t argCount;
     bool _on_;
     char *menu =  "help menu: \n"
                   "help:\t\t displays help menu\n"
@@ -296,29 +300,30 @@ void shell(void)
                   "proc_name &: \t runs the selected program in the background.\n";
     while (true)
     {
+		
         putsUart0("\nrtos-shell-0.1~ ");
         getsUart0(strInput, MAX_CHARS);
-        tokenize_string(strInput);
+        tokenize_string(strInput, temp_command, temp_arg, argCount);
 
         /*tokenizing string, setting argCount, getting arguments, and determining command*/
         if (temp_arg[1][0] == '&')
             RED_LED ^= 1;
-        else if (isCommand("help", argCount))
+        else if (isCommand("help", argCount, temp_command))
         {
             putsUart0(menu); putsUart0(menu1); putsUart0(menu2);
         }
-        else if (isCommand("reboot", argCount))
+        else if (isCommand("reboot", argCount, temp_command))
         {
             putsUart0("System rebooting...\n");
             break;
         }
-        else if (isCommand("ps", argCount))
+        else if (isCommand("ps", argCount, temp_command))
             ps();
-        else if (isCommand("ipcs", argCount))
+        else if (isCommand("ipcs", argCount, temp_command))
             ipcs();
-        else if (isCommand("kill", argCount))
+        else if (isCommand("kill", argCount, temp_command))
             kill(atoi(temp_arg[1]));
-        else if (isCommand("pi", argCount))
+        else if (isCommand("pi", argCount, temp_command))
         {
             if (strcmp("on", temp_arg[1]) == 0)
             {
@@ -333,7 +338,7 @@ void shell(void)
             else
                 putsUart0("Argument supplied was not \"on\" or \"off\". Try again.");
         }
-        else if (isCommand("preempt", argCount))
+        else if (isCommand("preempt", argCount, temp_command))
         {
             if (strcmp("on", temp_arg[1]) == 0)
             {
@@ -348,7 +353,7 @@ void shell(void)
             else
                 putsUart0("Argument supplied was not \"on\" or \"off\". Try again.");
         }
-        else if (isCommand("sched", argCount))
+        else if (isCommand("sched", argCount, temp_command))
         {
             if (strcmp("prio", temp_arg[1]) == 0)
             {
@@ -363,7 +368,7 @@ void shell(void)
             else
                 putsUart0("Argument supplied was not \"prio\" or \"rr\". Try again.");
         }
-        else if (isCommand("pidof", argCount))
+        else if (isCommand("pidof", argCount, temp_command))
             pidof(temp_arg[1]);
         else
         {
