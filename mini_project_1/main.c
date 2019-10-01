@@ -10,17 +10,16 @@
 
 #define MAX_CHARS 80
 #define RED_LED (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
-
-/* Please make these variables local to the shell function */
-
 #define RED_LED_MASK 2
-char strInput[MAX_CHARS];
-char *temp_command;
-char *temp_arg[10];
-uint8_t argCount;
 
+typedef struct user_input
+{
+    char strInput[MAX_CHARS];
+    char *temp_command;
+    char *temp_arg[10];
+    uint8_t argCount;
 
-/* Please make these variables local to the shell function */
+}user_input;
 
 /* adding a putsUart0 function declaration so string functions know about it */
 void putsUart0(const char* str);
@@ -67,13 +66,7 @@ int atoi(const char* str)
     }
     while (i < length_of_string)
     {
-//        if (str[i] > '9' || str[i] < '0')
-//        {
-//            putsUart0(str); putsUart0(" contains a character. Could not convert to integer.\n");
-//            break;
-//        }
         result += (str[i] - 48) * 10;
-
         power_of_ten /= 10;
         i++;
     }
@@ -113,50 +106,40 @@ uint8_t is_alphanumeric(char c)
                             };
     return result[c];
 }
-void tokenize_string(char* str)
+void tokenize_string(user_input *temp)
 {
-    uint8_t i;
+    uint8_t i = 0;
     uint8_t j = 0;
-    uint8_t length = strlen(str);
-    if (is_alphanumeric(str[0]))
+    uint8_t length = strlen(temp->strInput);
+    if (is_alphanumeric(temp->strInput[0]))
     {
-        temp_command = temp_arg[0] = &str[0];
+        temp->temp_command = temp->temp_arg[0] = &(temp->strInput[0]);
         j++;
     }
+
     for (i = 0; i < length; i++)
     {
-        if ( !(is_alphanumeric(str[i]) ) )
-                str[i] = '\0';
-        if ( is_alphanumeric(str[i]) && !(is_alphanumeric(str[i - 1])) && i > 0)
-                temp_arg[j++] = &str[i];
+        if ( !(is_alphanumeric(temp->strInput[i]) ) )
+                temp->strInput[i] = '\0';
+        if ( is_alphanumeric(temp->strInput[i]) && !(is_alphanumeric(temp->strInput[i - 1])) && i > 0)
+                temp->temp_arg[j++] = &(temp->strInput[i]);
     }
-    if (j == 0) temp_command = temp_arg[0] = &str[0];
-    temp_command = temp_arg[0];
-    argCount = j - 1;
+    if (j == 0) temp->temp_command = temp->temp_arg[0] = &(temp->strInput[0]);
+    temp->temp_command = temp->temp_arg[0];
+    temp->argCount = j - 1;
 }
-bool isCommand(char* cmd, uint8_t min)
+bool isCommand(char* cmd, user_input temp)
 {
-  /*commands: calibrate, color, erase, periodic, delta, match, trigger, button
-              led, test, ramp, rgb, light*/
-  if (strcmp(temp_command, cmd) == 0 && min == 0)
+  /*commands: help, reboot, ipcs, ps*/
+  if (strcmp(temp.temp_command, cmd) == 0 && temp.argCount == 0)
       return true;
 
-  else if (strcmp(temp_command,cmd) == 0 && min == 1)
-    return true;
-
-  else if (strcmp(temp_command,cmd) == 0 && min == 3)
+  /*commands: kill, pi, preempt, sched, pidof, proc_name*/
+  else if (strcmp(temp.temp_command,cmd) == 0 && temp.argCount == 1)
     return true;
 
   else
     return false;
-}
-uint32_t getValue(uint16_t argNum)
-{
-    return atoi(temp_arg[argNum + 1]);
-}
-char* getString(uint8_t argNum)
-{
-    return temp_arg[argNum + 1];
 }
 void initHw()
 {
@@ -206,7 +189,7 @@ char getcUart0()
     while (UART0_FR_R & UART_FR_RXFE);               // wait if uart0 rx fifo empty
     return UART0_DR_R & 0xFF;                        // get character from fifo
 }
-void getsUart0(char* str, uint8_t maxChars)
+void getsUart0(user_input *temp, uint8_t maxChars)
 {
     uint8_t count = 0;
     char c;
@@ -216,7 +199,7 @@ void getsUart0(char* str, uint8_t maxChars)
         //if you've reached the max amount of characters, break (80 chars max)
         if (count == maxChars)
         {
-            str[count] = '\0';
+            temp->strInput[count] = '\0';
             break;
         }
         if (c == 8 || c == 127)
@@ -227,18 +210,18 @@ void getsUart0(char* str, uint8_t maxChars)
         //if you've pressed enter, add a newline delimiter, a carriage return, and a null terminator
         if (c == 13)
         {
-            str[count] = '\0';
+            temp->strInput[count] = '\0';
             break;
         }
         //if an input is an uppercase letter, make it lowercase
         if (c >= 'A' && c <= 'Z')
         {
             c+=32;
-            str[count] = c;
+            temp->strInput[count] = c;
         }
         //put whatever is in the buffer onto the screen
         else
-            str[count] = c;
+            temp->strInput[count] = c;
         count++;
     }
 }
@@ -283,6 +266,7 @@ void pidof(char name[])
 void shell(void)
 {
     bool _on_;
+    user_input current_user_input;
     char *menu =  "help menu: \n"
                   "help:\t\t displays help menu\n"
                   "reboot:\t\t reboots the microcontroller.\n"
@@ -297,35 +281,38 @@ void shell(void)
     while (true)
     {
         putsUart0("\nrtos-shell-0.1~ ");
-        getsUart0(strInput, MAX_CHARS);
-        tokenize_string(strInput);
-
-        /*tokenizing string, setting argCount, getting arguments, and determining command*/
-        if (temp_arg[1][0] == '&')
+        getsUart0(&current_user_input, MAX_CHARS);
+        int len = strlen(current_user_input.strInput);
+        if (current_user_input.strInput[len - 2] == '&')
+        {
             RED_LED ^= 1;
-        else if (isCommand("help", argCount))
+            continue;
+        }
+        tokenize_string(&current_user_input);
+        /*tokenizing string, setting argCount, getting arguments, and determining command*/
+        if (isCommand("help", current_user_input))
         {
             putsUart0(menu); putsUart0(menu1); putsUart0(menu2);
         }
-        else if (isCommand("reboot", argCount))
+        else if (isCommand("reboot", current_user_input))
         {
             putsUart0("System rebooting...\n");
             break;
         }
-        else if (isCommand("ps", argCount))
+        else if (isCommand("ps", current_user_input))
             ps();
-        else if (isCommand("ipcs", argCount))
+        else if (isCommand("ipcs", current_user_input))
             ipcs();
-        else if (isCommand("kill", argCount))
-            kill(atoi(temp_arg[1]));
-        else if (isCommand("pi", argCount))
+        else if (isCommand("kill", current_user_input))
+            kill(atoi(current_user_input.temp_arg[1]));
+        else if (isCommand("pi", current_user_input))
         {
-            if (strcmp("on", temp_arg[1]) == 0)
+            if (strcmp("on", current_user_input.temp_arg[1]) == 0)
             {
                 _on_ = true;
                 pi(_on_);
             }
-            else if (strcmp("off", temp_arg[1]) == 0)
+            else if (strcmp("off", current_user_input.temp_arg[1]) == 0)
             {
                 _on_ = false;
                 pi(_on_);
@@ -333,14 +320,14 @@ void shell(void)
             else
                 putsUart0("Argument supplied was not \"on\" or \"off\". Try again.");
         }
-        else if (isCommand("preempt", argCount))
+        else if (isCommand("preempt", current_user_input))
         {
-            if (strcmp("on", temp_arg[1]) == 0)
+            if (strcmp("on", current_user_input.temp_arg[1]) == 0)
             {
                 _on_ = true;
                 preempt(_on_);
             }
-            else if (strcmp("off", temp_arg[1]) == 0)
+            else if (strcmp("off", current_user_input.temp_arg[1]) == 0)
             {
                 _on_ = false;
                 preempt(_on_);
@@ -348,14 +335,14 @@ void shell(void)
             else
                 putsUart0("Argument supplied was not \"on\" or \"off\". Try again.");
         }
-        else if (isCommand("sched", argCount))
+        else if (isCommand("sched", current_user_input))
         {
-            if (strcmp("prio", temp_arg[1]) == 0)
+            if (strcmp("prio", current_user_input.temp_arg[1]) == 0)
             {
                 _on_ = true;
                 sched(_on_);
             }
-            else if (strcmp("rr", temp_arg[1]) == 0)
+            else if (strcmp("rr", current_user_input.temp_arg[1]) == 0)
             {
                 _on_ = false;
                 sched(_on_);
@@ -363,18 +350,18 @@ void shell(void)
             else
                 putsUart0("Argument supplied was not \"prio\" or \"rr\". Try again.");
         }
-        else if (isCommand("pidof", argCount))
-            pidof(temp_arg[1]);
+        else if (isCommand("pidof", current_user_input))
+            pidof(current_user_input.temp_arg[1]);
         else
         {
-            putsUart0(temp_command);
+            putsUart0(current_user_input.temp_command);
             putsUart0(" is not specified. You might be missing arguments.");
         }
-        argCount = 0;
-        // reboot_debug++;
+        current_user_input.argCount = 0;
     }
     return;
 }
+
 int main(void)
 {
     // Initialize hardware
