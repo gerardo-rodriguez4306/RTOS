@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "tm4c123gh6pm.h"
-
 #define MAX_CHARS 80
 #define RED_LED (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 1*4)))
 #define RED_LED_MASK 2
@@ -20,11 +19,14 @@ typedef struct user_input
     uint8_t argCount;
 
 }user_input;
-
+typedef struct is_alpha_num
+{
+    uint8_t yes_no : 1;
+}is_alpha_num;
+extern void ResetISR(void);
 /* adding a putsUart0 function declaration so string functions know about it */
 void putsUart0(const char* str);
 /* String handling functions */
-
 uint8_t strlen(const char* str)
 {
     uint8_t result = 0;
@@ -74,37 +76,24 @@ int atoi(const char* str)
 }
 /* String handling functions */
 
-uint8_t is_alphanumeric(char c)
+bool is_alphanumeric(char c)
 {
     /*determines whether input is alphanumeric or not based on ASCII values*/
-    uint8_t result[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
-                            1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
-                            0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            0, 0, 0, 0, 0, 0, 0, 1, 1, 1,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                            1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                            0, 0, 0, 0, 0, 0,
-                            };
-    return result[c];
+    is_alpha_num is_a_n[128] = { {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, //0-9
+                                 {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, //10-19
+                                 {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, //20-29
+                                 {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {1}, {0}, //30-39
+                                 {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {1}, {1}, //40-49
+                                 {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {0}, {0}, //50-59
+                                 {0}, {0}, {0}, {0}, {0}, {1}, {1}, {1}, {1}, {1}, //60-69
+                                 {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, //70-79
+                                 {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, //80-89
+                                 {0}, {0}, {0}, {0}, {0}, {0}, {0}, {1}, {1}, {1}, //90-99
+                                 {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, //100-109
+                                 {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, //110-119
+                                 {1}, {1}, {1}, {0}, {0}, {0}, {0}, {0}, //120-127
+                                };
+    return is_a_n[c].yes_no;
 }
 void tokenize_string(user_input *temp)
 {
@@ -297,7 +286,7 @@ void shell(void)
         else if (isCommand("reboot", current_user_input))
         {
             putsUart0("System rebooting...\n");
-            break;
+            ResetISR();
         }
         else if (isCommand("ps", current_user_input))
             ps();
@@ -359,7 +348,6 @@ void shell(void)
         }
         current_user_input.argCount = 0;
     }
-    return;
 }
 
 int main(void)

@@ -8,7 +8,7 @@ GEN_OPTS__FLAG :=
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
-"./rodriguez_sawan.obj" \
+"./hardware_debug.obj" \
 "./tm4c123gh6pm_startup_ccs.obj" \
 "../tm4c123gh6pm.cmd" \
 $(GEN_CMDS__FLAG) \
@@ -119,42 +119,42 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-mini_project_1.out \
+hardware_debug.out \
 
 EXE_OUTPUTS__QUOTED += \
-"mini_project_1.out" \
+"hardware_debug.out" \
 
 BIN_OUTPUTS += \
-mini_project_1.hex \
+hardware_debug.hex \
 
 BIN_OUTPUTS__QUOTED += \
-"mini_project_1.hex" \
+"hardware_debug.hex" \
 
 
 # All Target
 all: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
-	@$(MAKE) --no-print-directory -Onone "mini_project_1.out"
+	@$(MAKE) --no-print-directory -Onone "hardware_debug.out"
 
 # Tool invocations
-mini_project_1.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
+hardware_debug.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: ARM Linker'
-	"/Applications/ti/ccs910/ccs/tools/compiler/ti-cgt-arm_18.12.2.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 -me --define=ccs="ccs" --define=PART_TM4C123GH6PM -g --gcc --diag_warning=225 --diag_wrap=off --display_error_number --abi=eabi -z -m"mini_project_1.map" --heap_size=0 --stack_size=512 -i"/Applications/ti/ccs910/ccs/tools/compiler/ti-cgt-arm_18.12.2.LTS/lib" -i"/Applications/ti/ccs910/ccs/tools/compiler/ti-cgt-arm_18.12.2.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="mini_project_1_linkInfo.xml" --rom_model -o "mini_project_1.out" $(ORDERED_OBJS)
+	"/Applications/ti/ccs910/ccs/tools/compiler/ti-cgt-arm_18.12.2.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 -me --define=ccs="ccs" --define=PART_TM4C123GH6PM -g --gcc --diag_warning=225 --diag_wrap=off --display_error_number --abi=eabi -z -m"hardware_debug.map" --heap_size=0 --stack_size=512 -i"/Applications/ti/ccs910/ccs/tools/compiler/ti-cgt-arm_18.12.2.LTS/lib" -i"/Applications/ti/ccs910/ccs/tools/compiler/ti-cgt-arm_18.12.2.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="hardware_debug_linkInfo.xml" --rom_model -o "hardware_debug.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
-mini_project_1.hex: $(EXE_OUTPUTS)
+hardware_debug.hex: $(EXE_OUTPUTS)
 	@echo 'Building files: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo 'Invoking: ARM Hex Utility'
-	"/Applications/ti/ccs910/ccs/tools/compiler/ti-cgt-arm_18.12.2.LTS/bin/armhex"  -o "mini_project_1.hex" $(EXE_OUTPUTS__QUOTED)
+	"/Applications/ti/ccs910/ccs/tools/compiler/ti-cgt-arm_18.12.2.LTS/bin/armhex"  -o "hardware_debug.hex" $(EXE_OUTPUTS__QUOTED)
 	@echo 'Finished building: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo ' '
 
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "rodriguez_sawan.obj" "tm4c123gh6pm_startup_ccs.obj" 
-	-$(RM) "rodriguez_sawan.d" "tm4c123gh6pm_startup_ccs.d" 
+	-$(RM) "hardware_debug.obj" "tm4c123gh6pm_startup_ccs.obj" 
+	-$(RM) "hardware_debug.d" "tm4c123gh6pm_startup_ccs.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
