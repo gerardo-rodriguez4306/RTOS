@@ -159,34 +159,153 @@ void initMpu()
 
 }
 
+/*If a hard fault ISR occurs, display “Hard fault in process N”, where N will be a variable provided by the
+ * OS. Or now, just use a variable named pid.
+ *
+ * Also, provide the value of the PSP, MSP, and hard fault flags (in hex).
+ */
+
 void FaultISR(void)
 {
-    //
-    // Enter an infinite loop.
-    //
-    putsUart0("hard fault\n");
-    while(1)
-    {
-    }
+    putsUart0("Hard fault in process N\n\r");
+
+    putsUart0("MSP: ");
+    asm("  MOV R0, SP");
+    char * c = itoh(getR0());
+    putsUart0(c);
+    putsUart0("\n\r");
+
+    putsUart0("PSP: "); //same as MSP
+    putsUart0(itoh(getR0()));
+    putsUart0("\n\r");
+
+    putsUart0("Hard Fault Flags: ");
+    putsUart0(itoh(NVIC_HFAULT_STAT_R)); //printing hard fault flags in hex
+
+    while(1);
 }
+
+
+/*If a bus fault ISR occurs, display “Bus fault in process N”, where N will be a variable provided by the OS.
+ * Or now, just use a variable named pid.
+ */
+
 void BusFaultISR(void)
 {
-    putsUart0("bus fault\n");
+    putsUart0("Bus fault in process N\n");
 }
+
+
+/*If a usage fault ISR occurs, display “Usage fault in process N”, where N will be a variable provided by the OS.
+ * Or now, just use a variable named pid.
+ */
 
 void UsageFaultISR(void)
 {
-    putsUart0("usage fault\n");
+    putsUart0("Usage fault in process N\n");
 }
+
+
+/*If an MPU fault ISR occurs, display “MPU fault in process N”, where N will be a variable provided by the
+ * OS. Or now, just use a variable named pid.
+ *
+ * Also, provide the value of the PSP, MSP, and mfault flags (in hex).
+ *
+ * Also, print the offending instruction and data addresses.
+ *
+ * Display the process stack dump (xPSR, PC, LT, R0-3, R12).
+ *
+ * Clear the MPU fault pending bit and trigger a pendsv ISR call.
+ */
 
 void MpuISR()
 {
-    putsUart0("MPU fault in process \n");
-    while(1);
+
+    putsUart0("MPU fault in process N\n\r");
+
+    putsUart0("Your core has been dumped, you must buy a new computer\n\r");
+    putsUart0("Process stack dump :\n\n\r");
+
+    putsUart0("R0: ");
+    putsUart0(itoh(getR0()));
+    putsUart0("\r\n");
+
+    putsUart0("R1: ");
+    asm("  MOV R0, R1");
+    putsUart0(itoh(getR0()));
+    putsUart0("\r\n");
+
+    putsUart0("R2: ");
+    asm("  MOV R0, R2");
+    putsUart0(itoh(getR0()));
+    putsUart0("\r\n");
+
+
+    putsUart0("R3: ");
+    asm("  MOV R0, R3");
+    putsUart0(itoh(getR0()));
+    putsUart0("\r\n");
+
+    putsUart0("R12: ");
+    asm("  MOV R0, R12");
+    putsUart0(itoh(getR0()));
+    putsUart0("\r\n");
+
+    /*
+    asm instruction is causing an error for some reason
+    putsUart0("xPSR: ");
+    asm("  MRS R0, PSR");
+    putsUart0(itoh(getR0()));   
+    putsUart0("\n");
+    */
+
+    putsUart0("PC: ");
+    asm("  MOV R0, PC");
+    putsUart0(itoh(getR0()));
+    putsUart0("\r\n");
+
+    putsUart0("LR: ");
+    asm("  MOV R0, LR");
+    putsUart0(itoh(getR0()));
+    putsUart0("\r\n");
+
+    putsUart0("MSP: ");
+    asm("  MOV R0, SP");
+    putsUart0(itoh(getR0()));
+    putsUart0("\r\n");
+
+    putsUart0("PSP: "); //same as MSP
+    putsUart0(itoh(getR0()));
+    putsUart0("\r\n");
+
+    putsUart0("Memory Fault Flags: ");
+    uint8_t temp = NVIC_FAULT_STAT_R; //To get memory management fault status: byte access to FAULTSTAT register  (Memory Management Fault Status (MFAULTSTAT), bits 7:0)
+    putsUart0(itoh(temp)); //printing mem fault flags in hex
+
+    NVIC_SYS_HND_CTRL_R &= 0b11111111111110111111111111111111; // clearing MPU fault pending bit
+
+    NVIC_SYS_HND_CTRL_R |= NVIC_SYS_HND_CTRL_PNDSV; //trigger a pendsv ISR call.
+
 }
+
+/*If a pendsv ISR occurs, display “Pendsv in process N”. If the MPU DERR or IERR bits are set, clear them
+ * and display the message “called from MPU”.
+ */
+
+void PendsvISR()
+{
+    putsUart0("Pendsv in process N\n");
+    if((NVIC_FAULT_STAT_R && NVIC_FAULT_STAT_DERR) || (NVIC_FAULT_STAT_R && NVIC_FAULT_STAT_IERR))
+    {
+        putsUart0("Called from MPU");
+        NVIC_FAULT_STAT_R |= NVIC_FAULT_STAT_DERR | NVIC_FAULT_STAT_IERR;
+    }
+}
+
 /* Adds an MPU region for Flash. It's main purpose is to give read, right, execute access to Flash. Second lowest priority (MPU # 1). Size (256 kb)
  * All subregions enabled. Nonshareable, noncacheable, nonbufferable.
  */
+
 void addFlashRegion()
 {
     NVIC_SYS_HND_CTRL_R = NVIC_SYS_HND_CTRL_MEM | NVIC_SYS_HND_CTRL_USAGE | NVIC_SYS_HND_CTRL_BUS;
@@ -194,13 +313,14 @@ void addFlashRegion()
     NVIC_MPU_NUMBER_R = 0x1;
     NVIC_MPU_BASE_R = 0x0;
     NVIC_MPU_ATTR_R = 0x302003F; //RES: 000 XN: 0 RES: 0 AP: 011 RES: 00 TEX: 000 SCB: 010 SRD: 00000000 RES: 00 SIZE: 10001 ENABLE: 1
-	
     // TBD: R/W to Flash for testing
 }
 
+
 /* Adds an MPU region to the entire memory map (Size : 4gb). It's main purpose is to give read right access (no execute) to SRAM and peripherals. Has lowest priority (MPU # 0) so
- * it doesn't affect other MPU regions. All subregions enabled. Nonshareable, noncacheable, nonbufferable(?) 
+ * it doesn't affect other MPU regions. All subregions enabled. Nonshareable, noncacheable, nonbufferable(?)
  */
+
 void addSRAMRegion()
 {
     NVIC_SYS_HND_CTRL_R = NVIC_SYS_HND_CTRL_MEM | NVIC_SYS_HND_CTRL_USAGE | NVIC_SYS_HND_CTRL_BUS;
@@ -208,9 +328,9 @@ void addSRAMRegion()
     NVIC_MPU_NUMBER_R = 0x0;
     NVIC_MPU_BASE_R = 0x0;
     NVIC_MPU_ATTR_R = 0b00010011000000000000000000111111; // XN: 1 AP: 011 SIZE: 11111: ENABLE: 1
-	
     // TBD: R/W to SRAM and Peripherals for testing
 }
+
 
 
 int main(void)
