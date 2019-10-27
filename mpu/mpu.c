@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "tm4c123gh6pm.h"
+#include "hex.h"
 #define MAX_CHARS 80
 typedef struct user_input
 {
@@ -157,6 +158,61 @@ void initMpu()
     NVIC_MPU_CTRL_R = NVIC_MPU_CTRL_ENABLE | NVIC_MPU_CTRL_PRIVDEFEN;
 
 }
+
+void FaultISR(void)
+{
+    //
+    // Enter an infinite loop.
+    //
+    putsUart0("hard fault\n");
+    while(1)
+    {
+    }
+}
+void BusFaultISR(void)
+{
+    putsUart0("bus fault\n");
+}
+
+void UsageFaultISR(void)
+{
+    putsUart0("usage fault\n");
+}
+
+void MpuISR()
+{
+    putsUart0("MPU fault in process \n");
+    while(1);
+}
+/* Adds an MPU region for Flash. It's main purpose is to give read, right, execute access to Flash. Second lowest priority (MPU # 1). Size (256 kb)
+ * All subregions enabled. Nonshareable, noncacheable, nonbufferable.
+ */
+void addFlashRegion()
+{
+    NVIC_SYS_HND_CTRL_R = NVIC_SYS_HND_CTRL_MEM | NVIC_SYS_HND_CTRL_USAGE | NVIC_SYS_HND_CTRL_BUS;
+    NVIC_MPU_CTRL_R = NVIC_MPU_CTRL_ENABLE | NVIC_MPU_CTRL_PRIVDEFEN;
+    NVIC_MPU_NUMBER_R = 0x1;
+    NVIC_MPU_BASE_R = 0x0;
+    NVIC_MPU_ATTR_R = 0x302003F; //RES: 000 XN: 0 RES: 0 AP: 011 RES: 00 TEX: 000 SCB: 010 SRD: 00000000 RES: 00 SIZE: 10001 ENABLE: 1
+	
+    // TBD: R/W to Flash for testing
+}
+
+/* Adds an MPU region to the entire memory map (Size : 4gb). It's main purpose is to give read right access (no execute) to SRAM and peripherals. Has lowest priority (MPU # 0) so
+ * it doesn't affect other MPU regions. All subregions enabled. Nonshareable, noncacheable, nonbufferable(?) 
+ */
+void addSRAMRegion()
+{
+    NVIC_SYS_HND_CTRL_R = NVIC_SYS_HND_CTRL_MEM | NVIC_SYS_HND_CTRL_USAGE | NVIC_SYS_HND_CTRL_BUS;
+    NVIC_MPU_CTRL_R = NVIC_MPU_CTRL_ENABLE | NVIC_MPU_CTRL_PRIVDEFEN;
+    NVIC_MPU_NUMBER_R = 0x0;
+    NVIC_MPU_BASE_R = 0x0;
+    NVIC_MPU_ATTR_R = 0b00010011000000000000000000111111; // XN: 1 AP: 011 SIZE: 11111: ENABLE: 1
+	
+    // TBD: R/W to SRAM and Peripherals for testing
+}
+
+
 int main(void)
 {
     initHw();
