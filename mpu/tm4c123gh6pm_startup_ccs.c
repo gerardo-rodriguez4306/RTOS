@@ -31,7 +31,10 @@
 //*****************************************************************************
 void ResetISR(void);
 static void NmiSR(void);
-static void FaultISR(void);
+extern void FaultISR(void);
+extern void MpuISR(void);
+extern void BusFaultISR(void);
+extern void UsageFaultISR(void);
 static void IntDefaultHandler(void);
 
 //*****************************************************************************
@@ -71,9 +74,9 @@ void (* const g_pfnVectors[])(void) =
     ResetISR,                               // The reset handler
     NmiSR,                                  // The NMI handler
     FaultISR,                               // The hard fault handler
-    IntDefaultHandler,                      // The MPU fault handler
-    IntDefaultHandler,                      // The bus fault handler
-    IntDefaultHandler,                      // The usage fault handler
+    MpuISR,                      // The MPU fault handler
+    BusFaultISR,                      // The bus fault handler
+    UsageFaultISR,                      // The usage fault handler
     0,                                      // Reserved
     0,                                      // Reserved
     0,                                      // Reserved
@@ -270,7 +273,7 @@ NmiSR(void)
 // for examination by a debugger.
 //
 //*****************************************************************************
-static void
+/*static void
 FaultISR(void)
 {
     //
@@ -279,7 +282,7 @@ FaultISR(void)
     while(1)
     {
     }
-}
+}*/
 
 //*****************************************************************************
 //
