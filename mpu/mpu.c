@@ -281,10 +281,11 @@ void MpuISR()
     putsUart0("Memory Fault Flags: ");
     uint8_t temp = NVIC_FAULT_STAT_R; //To get memory management fault status: byte access to FAULTSTAT register  (Memory Management Fault Status (MFAULTSTAT), bits 7:0)
     putsUart0(itoh(temp)); //printing mem fault flags in hex
+    putsUart0("\r\n\n");
 
-    NVIC_SYS_HND_CTRL_R &= 0b11111111111110111111111111111111; // clearing MPU fault pending bit
+    NVIC_SYS_HND_CTRL_R &= 0b11111111111111111101111111111111; // clearing MPU fault pending bit
 
-    NVIC_SYS_HND_CTRL_R |= NVIC_SYS_HND_CTRL_PNDSV; //trigger a pendsv ISR call.
+    NVIC_INT_CTRL_R |= NVIC_INT_CTRL_PEND_SV; //trigger a pendsv ISR call.
 
 }
 
@@ -300,6 +301,7 @@ void PendsvISR()
         putsUart0("Called from MPU");
         NVIC_FAULT_STAT_R |= NVIC_FAULT_STAT_DERR | NVIC_FAULT_STAT_IERR;
     }
+    while(1);
 }
 
 /* Adds an MPU region for Flash. It's main purpose is to give read, right, execute access to Flash. Second lowest priority (MPU # 1). Size (256 kb)
