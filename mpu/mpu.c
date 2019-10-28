@@ -220,67 +220,77 @@ void UsageFaultISR(void)
 
 void MpuISR()
 {
+    uint32_t R0, R1, R2, R3, R12, SP, PC, LR, PSR;
+    R0 = getR0();
+    R1 = getR1();
+    R2 = getR2();
+    R3 = getR3();
+    R12 = getR12();
+    SP = getSP();
+    PC = getPC();
+    LR = getLR();
 
     putsUart0("MPU fault in process N\n\r");
 
     putsUart0("Your core has been dumped, you must buy a new computer\n\r");
     putsUart0("Process stack dump :\n\n\r");
+    char input[11] = {'0','x','0','0','0','0','0','0','0','0','\0'};
 
     putsUart0("R0: ");
-    putsUart0(itoh(getR0()));
+    putsUart0(itoh(R0, input));
     putsUart0("\r\n");
+    flush(input);
 
     putsUart0("R1: ");
-    asm("  MOV R0, R1");
-    putsUart0(itoh(getR0()));
+    putsUart0(itoh(R1, input));
     putsUart0("\r\n");
+    flush(input);
 
     putsUart0("R2: ");
-    asm("  MOV R0, R2");
-    putsUart0(itoh(getR0()));
+    putsUart0(itoh(R2, input));
     putsUart0("\r\n");
+    flush(input);
 
 
     putsUart0("R3: ");
-    asm("  MOV R0, R3");
-    putsUart0(itoh(getR0()));
+    putsUart0(itoh(R3, input));
     putsUart0("\r\n");
+    flush(input);
 
     putsUart0("R12: ");
-    asm("  MOV R0, R12");
-    putsUart0(itoh(getR0()));
+    putsUart0(itoh(R12, input));
     putsUart0("\r\n");
+    flush(input);
 
-    /*
-    asm instruction is causing an error for some reason
-    putsUart0("xPSR: ");
-    asm("  MRS R0, PSR");
-    putsUart0(itoh(getR0()));   
-    putsUart0("\n");
-    */
+
+    /*putsUart0("xPSR: ");
+    putsUart0(itoh(PSR, input));
+    putsUart0("\n");*/
+
 
     putsUart0("PC: ");
-    asm("  MOV R0, PC");
-    putsUart0(itoh(getR0()));
+    putsUart0(itoh(PC, input));
     putsUart0("\r\n");
+    flush(input);
 
     putsUart0("LR: ");
-    asm("  MOV R0, LR");
-    putsUart0(itoh(getR0()));
+    putsUart0(itoh(LR, input));
     putsUart0("\r\n");
+    flush(input);
 
     putsUart0("MSP: ");
-    asm("  MOV R0, SP");
-    putsUart0(itoh(getR0()));
+    putsUart0(itoh(SP, input));
     putsUart0("\r\n");
+    flush(input);
 
     putsUart0("PSP: "); //same as MSP
-    putsUart0(itoh(getR0()));
+    putsUart0(itoh(SP, input));
     putsUart0("\r\n");
+    flush(input);
 
     putsUart0("Memory Fault Flags: ");
     uint8_t temp = NVIC_FAULT_STAT_R; //To get memory management fault status: byte access to FAULTSTAT register  (Memory Management Fault Status (MFAULTSTAT), bits 7:0)
-    putsUart0(itoh(temp)); //printing mem fault flags in hex
+    putsUart0(itoh(temp, input)); //printing mem fault flags in hex
     putsUart0("\r\n\n");
 
     NVIC_SYS_HND_CTRL_R &= 0b11111111111111111101111111111111; // clearing MPU fault pending bit
