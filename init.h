@@ -1,3 +1,28 @@
+#define BLUE_LED       (*((volatile uint32_t *)(0x42000000 + (0x400253FC-0x40000000)*32 + 2*4))) // on-board blue LED
+#define RED_LED        (*((volatile uint32_t *)(0x42000000 + (0x400243FC-0x40000000)*32 + 1*4))) // off-board red LED
+#define GREEN_LED      (*((volatile uint32_t *)(0x42000000 + (0x400243FC-0x40000000)*32 + 4*4))) // off-board green LED
+#define YELLOW_LED     (*((volatile uint32_t *)(0x42000000 + (0x400243FC-0x40000000)*32 + 3*4))) // off-board yellow LED
+#define ORANGE_LED     (*((volatile uint32_t *)(0x42000000 + (0x400243FC-0x40000000)*32 + 2*4))) // off-board orange LED
+
+#define PUSH_BUTTON_0  (*((volatile uint32_t *)(0x42000000 + (0x400043FC-0x40000000)*32 + 2*4)))
+#define PUSH_BUTTON_1  (*((volatile uint32_t *)(0x42000000 + (0x400043FC-0x40000000)*32 + 3*4)))
+#define PUSH_BUTTON_2  (*((volatile uint32_t *)(0x42000000 + (0x400043FC-0x40000000)*32 + 4*4)))
+#define PUSH_BUTTON_3  (*((volatile uint32_t *)(0x42000000 + (0x400043FC-0x40000000)*32 + 5*4)))
+#define PUSH_BUTTON_4  (*((volatile uint32_t *)(0x42000000 + (0x400043FC-0x40000000)*32 + 6*4)))
+#define PUSH_BUTTON_5  (*((volatile uint32_t *)(0x42000000 + (0x400043FC-0x40000000)*32 + 7*4)))
+
+#define BLUE_LED_MASK 4
+#define RED_LED_MASK 2
+#define GREEN_LED_MASK 16
+#define YELLOW_LED_MASK 8
+#define ORANGE_LED_MASK 4
+
+#define PUSH_BUTTON_0_MASK 4
+#define PUSH_BUTTON_1_MASK 8
+#define PUSH_BUTTON_2_MASK 16
+#define PUSH_BUTTON_3_MASK 32
+#define PUSH_BUTTON_4_MASK 64
+#define PUSH_BUTTON_5_MASK 128
 void initHw()
 {
     SYSCTL_RCC_R = SYSCTL_RCC_XTAL_16MHZ | SYSCTL_RCC_OSCSRC_MAIN | SYSCTL_RCC_USESYSDIV | (4 << SYSCTL_RCC_SYSDIV_S);
