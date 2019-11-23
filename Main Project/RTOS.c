@@ -141,7 +141,7 @@ struct _tcb
 // RTOS Kernel Functions
 //-----------------------------------------------------------------------------
 
-// REQUIRED: initialize systick for 1ms system timer
+// REQUIRED: initialize systick for 1ms system timer ---> initHw()
 void initRtos()
 {
     uint8_t i;
@@ -155,9 +155,32 @@ void initRtos()
     }
 }
 
-// REQUIRED: Implement prioritization to 16 levels
+// REQUIRED: Implement prioritization to 16 levels ---> 
 int rtosScheduler()
 {
+    /*
+        Example: Tasks A, B, C have priorities 0, 1, 2. They will be processed as follows:
+        A | A B | A C | A B C | A | A B | A C | A B C
+        
+        Actual program behavior:
+        We have ten tasks with priorities as high as 0 and as low as 15. The tasks/threads, along with the priorities, are:
+        
+        Important: 0       alias --> A
+        oneshot:   4       alias --> B
+        errant:    8       alias --> C
+        flash4Hz:  8       alias --> D
+        shell:     8       alias --> E
+        uncooperative: 10  alias --> F
+        LengthyFn: 12      alias --> G
+        ReadKeys:  12      alias --> H
+        Debouce:   12      alias --> I
+        idle:      15      alias --> J
+        
+        A | A | A | A B | A | A | A | A B C C C | A | AF | A | A B G H I | A | A | A J | A A B C C C |
+        A | A | A | A B F | A | A | A | A B C C C | A | A | A | A B | A | A F | A | A B C C C | 
+        
+        will have to use modulus operator on timer that ticks every time SysTick fires
+    */
     bool ok;
     static uint8_t task = 0xFF;
     ok = false;
